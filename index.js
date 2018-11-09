@@ -1,3 +1,4 @@
+const config = require("./config");
 const http = require("http");
 const url = require("url");
 const StringDecoder = require("string_decoder").StringDecoder;
@@ -14,13 +15,13 @@ const server = http.createServer((req, res) => {
 
   const decoder = new StringDecoder("utf-8");
 
-  let payload = "";
+  let buffer = "";
   req.on("data", data => {
-    payload += decoder.write(data);
+    buffer += decoder.write(data);
   });
 
   req.on("end", _ => {
-    payload += decoder.end();
+    buffer += decoder.end();
     const chosenHandler = !router[trimmedPath]
       ? handlers.notFound
       : router[trimmedPath];
@@ -30,7 +31,7 @@ const server = http.createServer((req, res) => {
       queryStringObject,
       method,
       headers,
-      payload
+      buffer
     };
 
     chosenHandler(data, function(statusCode = 200, payload = {}) {
@@ -38,7 +39,7 @@ const server = http.createServer((req, res) => {
       payload = typeof payload != "object" ? {} : payload;
       const payloadString = JSON.stringify(payload);
 
-      res.writeHead(statusCode);
+      res.writeHead(statusCode, { "Content-Type": "application/json" });
       res.end(payloadString);
 
       console.log("We dumping these responses", statusCode, payloadString);
@@ -62,4 +63,12 @@ const router = {
   sample: handlers.sample
 };
 
-server.listen(3000, _ => console.log("Server is listening on port 3000"));
+server.listen(config.port, _ =>
+  console.log(
+    "Server is listening on port " +
+      config.port +
+      " in " +
+      config.envName +
+      " mode"
+  )
+);
